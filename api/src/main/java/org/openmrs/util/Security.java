@@ -47,10 +47,6 @@ public class Security {
 
 	private static final Random RANDOM = new SecureRandom();
 
-	private static final String SHA512 = "SHA-512";
-
-	private static final String SHA1 = "SHA-1";
-
 	// Fallback defaults for the Argon2id work factors, used only when a value cannot be
 	// parsed. The defaults follow the OWASP recommendation for Argon2id (m=19456 KB, t=2,
 	// p=1); per-installation overrides come through the Spring placeholders.
@@ -72,14 +68,10 @@ public class Security {
 	private static final PasswordEncoder FALLBACK_ENCODER = new OpenmrsDelegatingPasswordEncoder("",
 		Collections.singletonMap("argon2", Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8()),
 		new LegacyOpenmrsPasswordEncoder());
-	
-	/**
-	 * Private constructor: this class offers a static API only. The Spring
-	 * {@code openmrsPasswordEncoder} bean is created in applicationContext-service.xml.
-	 */
+
 	private Security() {
 	}
-	
+
 	static PasswordEncoder getPasswordEncoder() {
 		if (!ServiceContext.isInstantiated()
 				|| ServiceContext.getInstance().getApplicationContext() == null) {
@@ -117,11 +109,7 @@ public class Security {
 	}
 
 	/**
-	 * Compare the given hash and the given string-to-hash to see if they are equal. The
-	 * string-to-hash is usually of the form password + salt. <br>
-	 * <br>
-	 * This should be used so that this class can compare against the new correct hashing algorithm
-	 * and the old incorrect hashing algorithm.
+	 * Compare the given hash and the given string-to-hash to see if they are equal.
 	 *
 	 * @param hashedPassword a stored password that has been hashed previously
 	 * @param passwordToHash a string to encode/hash and compare to hashedPassword
@@ -136,7 +124,7 @@ public class Security {
 			throw new APIException("password.cannot.be.null", (Object[]) null);
 		}
 		
-		return hashedPassword.equals(encodeString(passwordToHash, SHA512))
+		return hashedPassword.equals(encodeString(passwordToHash))
 			|| hashedPassword.equals(encodeStringSHA1(passwordToHash))
 			|| hashedPassword.equals(incorrectlyEncodeString(passwordToHash));
 	}
@@ -150,7 +138,7 @@ public class Security {
 	 * <strong>Should</strong> encode strings to 128 characters
 	 */
 	public static String encodeString(String strToEncode) throws APIException {
-		return encodeString(strToEncode, SHA512);
+		return encodeString(strToEncode, "SHA-512");
 	}
 
 	/**
@@ -160,7 +148,7 @@ public class Security {
 	 * @return the SHA-1 encryption of a given string
 	 */
 	private static String encodeStringSHA1(String strToEncode) throws APIException {
-		return encodeString(strToEncode, SHA1);
+		return encodeString(strToEncode, "SHA-1");
 	}
 
 	/**
