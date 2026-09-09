@@ -68,10 +68,10 @@ public class Security {
 	private static final PasswordEncoder FALLBACK_ENCODER = new OpenmrsDelegatingPasswordEncoder("",
 		Collections.singletonMap("argon2", Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8()),
 		new LegacyOpenmrsPasswordEncoder());
-
+	
 	private Security() {
 	}
-
+	
 	static PasswordEncoder getPasswordEncoder() {
 		if (!ServiceContext.isInstantiated()
 				|| ServiceContext.getInstance().getApplicationContext() == null) {
@@ -123,7 +123,7 @@ public class Security {
 		if (hashedPassword == null || passwordToHash == null) {
 			throw new APIException("password.cannot.be.null", (Object[]) null);
 		}
-
+		
 		return hashedPassword.equals(encodeString(passwordToHash))
 			|| hashedPassword.equals(encodeStringSHA1(passwordToHash))
 			|| hashedPassword.equals(incorrectlyEncodeString(passwordToHash));
