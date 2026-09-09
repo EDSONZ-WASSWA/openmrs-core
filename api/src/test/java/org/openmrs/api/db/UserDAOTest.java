@@ -180,17 +180,17 @@ public class UserDAOTest extends BaseContextSensitiveTest {
 	}
 	
 	/**
-	 * Pins the password write path for {@code changePassword(User, String)}: the hash the DAO
-	 * persists must be exactly what the configured {@code openmrsPasswordEncoder} bean
-	 * produces for {@code password + salt} (by default the legacy SHA-512 encoder), and the
-	 * stored value must authenticate the password on login.
+	 * Pins the password write path for {@code changePassword(User, String)}: the value the DAO
+	 * persists must be verifiable by the configured {@code openmrsPasswordEncoder} bean for
+	 * {@code password + salt} (the legacy SHA-512 encoder by default, or the argon2 encoder when
+	 * the site opts in to it), and the stored value must authenticate the password on login.
 	 */
 	@Test
 	public void changePassword_shouldStoreThePasswordThroughTheConfiguredEncoder() {
 		dao.changePassword(userJoe, PASSWORD);
 		LoginCredential lc = dao.getLoginCredential(userJoe);
 		String stored = lc.getHashedPassword();
-		assertEquals(Security.encodePassword(PASSWORD + lc.getSalt()), stored,
+		assertTrue(Security.checkPassword(stored, PASSWORD + lc.getSalt()),
 			"users.password must be written by the configured openmrsPasswordEncoder bean");
 		// Round-trip: prove the value that was stored also matches the raw password on login.
 		Context.authenticate(userJoe.getUsername(), PASSWORD);
@@ -198,8 +198,8 @@ public class UserDAOTest extends BaseContextSensitiveTest {
 
 	/**
 	 * Pins the password write path for {@code saveUser(User, String)}: the hash the DAO
-	 * persists must be exactly what the configured {@code openmrsPasswordEncoder} bean
-	 * produces, and the stored value must authenticate the password on login.
+	 * persists must be verifiable by the configured {@code openmrsPasswordEncoder} bean,
+	 * and the stored value must authenticate the password on login.
 	 */
 	@Test
 	public void saveUser_shouldStoreThePasswordThroughTheConfiguredEncoder() {
@@ -221,7 +221,7 @@ public class UserDAOTest extends BaseContextSensitiveTest {
 
 		LoginCredential lc = dao.getLoginCredential(newUser);
 		String stored = lc.getHashedPassword();
-		assertEquals(Security.encodePassword("Openmr6zz" + lc.getSalt()), stored,
+		assertTrue(Security.checkPassword(stored, "Openmr6zz" + lc.getSalt()),
 			"new-user password must be written by the configured openmrsPasswordEncoder bean");
 		Context.authenticate("juser2", "Openmr6zz");
 	}
@@ -229,7 +229,8 @@ public class UserDAOTest extends BaseContextSensitiveTest {
 	/**
 	 * Pins the password write path for {@code changePassword(String, String)} — the
 	 * "self change" overload taking old and new password — and that the stored value
-	 * authenticates the new password.
+	 * verifies against the configured {@code openmrsPasswordEncoder} bean and authenticates
+	 * the new password.
 	 */
 	@Test
 	public void changePasswordOldNew_shouldStoreThePasswordThroughTheConfiguredEncoder() {
@@ -240,7 +241,7 @@ public class UserDAOTest extends BaseContextSensitiveTest {
 		dao.changePassword(PASSWORD, "Openmr7aa");
 		LoginCredential lc = dao.getLoginCredential(userJoe);
 		String stored = lc.getHashedPassword();
-		assertEquals(Security.encodePassword("Openmr7aa" + lc.getSalt()), stored,
+		assertTrue(Security.checkPassword(stored, "Openmr7aa" + lc.getSalt()),
 			"self-change password must be written by the configured openmrsPasswordEncoder bean");
 		Context.authenticate(userJoe.getUsername(), "Openmr7aa");
 	}

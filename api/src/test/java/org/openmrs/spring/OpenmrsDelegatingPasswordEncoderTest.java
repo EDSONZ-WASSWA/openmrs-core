@@ -244,4 +244,31 @@ public class OpenmrsDelegatingPasswordEncoderTest {
 		assertTrue(postOptIn.matches("password", newHash));
 		assertFalse(postOptIn.upgradeEncoding(newHash));
 	}
+
+	/**
+	 * {@link #upgradeEncoding(String)} delegates to the encoder named by a recognized prefix, so
+	 * raising the configured argon2 work factors rehashes previously stored argon2 hashes. With a
+	 * weaker hash stored, an encoder configured with stronger parameters must report that the hash
+	 * needs re-encoding, while still verifying the password against the stored hash.
+	 */
+	@Test
+	public void upgradeEncoding_shouldReturnTrueWhenTheConfiguredWorkFactorsAreStrongerThanTheStoredHash() {
+		Map<String, PasswordEncoder> weak = new HashMap<>();
+		weak.put("argon2", Security.createArgon2PasswordEncoder("16", "32", "1", "19456", "2"));
+		String stored = new OpenmrsDelegatingPasswordEncoder("argon2", weak,
+			new LegacyOpenmrsPasswordEncoder()).encode("password");
+		assertTrue(stored.startsWith("{argon2}"));
+
+		Map<String, PasswordEncoder> strong = new HashMap<>();
+		strong.put("argon2", Security.createArgon2PasswordEncoder("16", "32", "1", "65536", "3"));
+		OpenmrsDelegatingPasswordEncoder reworked = new OpenmrsDelegatingPasswordEncoder("argon2", strong,
+			new LegacyOpenmrsPasswordEncoder());
+
+		// different work factors mean the stored hash should be upgraded...
+		assertTrue(reworked.upgradeEncoding(stored));
+		// ...but the stored hash still verifies against the raw password until it is
+		assertTrue(reworked.matches("password", stored));
+		// a hash written with the current work factors needs no upgrade
+		assertFalse(reworked.upgradeEncoding(reworked.encode("password")));
+	}
 }
